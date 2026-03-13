@@ -7,7 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SaveAnswerDto } from './dto/save-answer.dto';
 import { SaveLeadDto } from './dto/save-lead.dto';
 import { StartAuditDto } from './dto/start-audit.dto';
-import { SessionStatus } from '../generated/prisma';
+import { SessionStatus } from '@prisma/client';
 
 interface TierDefinition {
   min: number;
