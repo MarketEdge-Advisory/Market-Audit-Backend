@@ -19,7 +19,10 @@ export class AuditController {
   }
 
   @Post(':sessionId/answer')
-  saveAnswer(@Param('sessionId') sessionId: string, @Body() body: SaveAnswerDto) {
+  saveAnswer(
+    @Param('sessionId') sessionId: string,
+    @Body() body: SaveAnswerDto,
+  ) {
     return this.auditService.saveAnswer(sessionId, body);
   }
 
@@ -36,5 +39,10 @@ export class AuditController {
   @Get(':sessionId/result')
   getResult(@Param('sessionId') sessionId: string) {
     return this.auditService.getResult(sessionId);
+  }
+
+  @Post(':sessionId/request-call')
+  async requestCall(@Param('sessionId') sessionId: string) {
+    return this.auditService.requestCall(sessionId);
   }
 }
