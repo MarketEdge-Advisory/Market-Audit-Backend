@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 
 interface SectionScore {
@@ -106,14 +107,24 @@ export class EmailService {
   private readonly resend: Resend;
   private readonly logger = new Logger(EmailService.name);
 
-  private readonly FROM_EMAIL = 'onboarding@resend.dev'; // keep until domain verified
-  private readonly COMPANY_EMAIL = 'hammed@marketedgeadvisory.com'; // ← updated
-  private readonly COMPANY_NAME = 'MarketEdge Advisory';
-  private readonly CALENDAR_LINK =
-    'https://calendar.app.google/pxVECnW2yNYbGEdC7';
+  private get FROM_EMAIL() {
+    return this.configService.get<string>('EMAIL_FROM') || '';
+  }
 
-  constructor() {
-    this.resend = new Resend(process.env.RESEND_API_KEY);
+  private get COMPANY_EMAIL() {
+    return this.configService.get<string>('COMPANY_EMAIL') || '';
+  }
+
+  private get COMPANY_NAME() {
+    return this.configService.get<string>('COMPANY_NAME') || '';
+  }
+
+  private get CALENDAR_LINK() {
+    return this.configService.get<string>('CALENDAR_LINK') || '';
+  }
+
+  constructor(private configService: ConfigService) {
+    this.resend = new Resend(this.configService.get<string>('RESEND_API_KEY'));
   }
 
   private buildEmailWrapper(headerTitle: string, bodyContent: string): string {
