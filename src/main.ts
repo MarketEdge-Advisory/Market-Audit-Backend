@@ -14,7 +14,7 @@ async function bootstrap() {
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:3002',
-    process.env.FRONTEND_URL, // e.g. https://market-audit.vercel.app
+    'https://marketaudit-git-fix-rename-the-gith-b74345-market-edge-advisory.vercel.app/',
   ].filter(Boolean) as string[];
 
   app.enableCors({
