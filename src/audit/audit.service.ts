@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import { SaveAnswerDto } from './dto/save-answer.dto';
 import { SaveLeadDto } from './dto/save-lead.dto';
 import { StartAuditDto } from './dto/start-audit.dto';
@@ -48,7 +49,10 @@ export class AuditService {
     },
   ];
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   async getTemplate() {
     const template = await this.prisma.auditTemplate.findFirst({
@@ -112,9 +116,7 @@ export class AuditService {
 
     const session = await this.prisma.auditSession.findUnique({
       where: { id: sessionId },
-      include: {
-        template: true,
-      },
+      include: { template: true },
     });
 
     if (!session) {
@@ -180,9 +182,7 @@ export class AuditService {
             sections: {
               orderBy: { sortOrder: 'asc' },
               include: {
-                questions: {
-                  orderBy: { sortOrder: 'asc' },
-                },
+                questions: { orderBy: { sortOrder: 'asc' } },
               },
             },
           },
@@ -238,10 +238,7 @@ export class AuditService {
       };
     });
 
-    const totalScore = sectionScores.reduce(
-      (sum, section) => sum + section.score,
-      0,
-    );
+    const totalScore = sectionScores.reduce((sum, s) => sum + s.score, 0);
     const tier = this.resolveTier(totalScore);
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -260,7 +257,7 @@ export class AuditService {
           maxScore: session.template.maxScore,
           tier: tier.tier,
           message: tier.message,
-          sectionScores: sectionScores,
+          sectionScores,
           locked: true,
           calculatedAt: new Date(),
         },
@@ -270,7 +267,7 @@ export class AuditService {
           maxScore: session.template.maxScore,
           tier: tier.tier,
           message: tier.message,
-          sectionScores: sectionScores,
+          sectionScores,
           locked: true,
         },
       });
@@ -287,10 +284,6 @@ export class AuditService {
   }
 
   async saveLead(sessionId: string, input: SaveLeadDto) {
-    if (!input.fullName || !input.email) {
-      throw new BadRequestException('fullName and email are required');
-    }
-
     const session = await this.prisma.auditSession.findUnique({
       where: { id: sessionId },
       include: { result: true },
@@ -330,7 +323,68 @@ export class AuditService {
       });
     });
 
+    // Send results email to client + company
+    // Non-blocking — email failure does not break the lead save
+    const result = session.result;
+    await this.emailService.sendResultsEmail({
+      clientEmail: input.email,
+      clientName: input.fullName,
+      sessionId,
+      tier: result.tier,
+      message: result.message,
+      totalScore: result.totalScore,
+      maxScore: result.maxScore,
+      sectionScores: result.sectionScores as {
+        sectionCode: string;
+        title: string;
+        score: number;
+        maxScore: number;
+      }[],
+    });
+
     return { sessionId, unlocked: true };
+  }
+  // Add this method to audit.service.ts (after saveLead, before getResult)
+
+  async requestCall(sessionId: string) {
+    const session = await this.prisma.auditSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        result: true,
+        lead: true,
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Session not found');
+    }
+
+    if (!session.result || session.result.locked) {
+      throw new BadRequestException(
+        'Audit must be completed before requesting a call',
+      );
+    }
+
+    if (!session.lead) {
+      throw new BadRequestException('Lead information not found');
+    }
+
+    await this.emailService.sendCallRequestEmail({
+      clientEmail: session.lead.email,
+      clientName: session.lead.fullName,
+      tier: session.result.tier,
+      message: session.result.message,
+      totalScore: session.result.totalScore,
+      maxScore: session.result.maxScore,
+      sectionScores: session.result.sectionScores as {
+        sectionCode: string;
+        title: string;
+        score: number;
+        maxScore: number;
+      }[],
+    });
+
+    return { sessionId, callRequested: true };
   }
 
   async getResult(sessionId: string) {
@@ -343,10 +397,7 @@ export class AuditService {
     }
 
     if (result.locked) {
-      return {
-        sessionId,
-        locked: true,
-      };
+      return { sessionId, locked: true };
     }
 
     return {

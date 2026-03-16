@@ -121,9 +121,9 @@ model AuditLead {
     sessionId   String   @unique
     fullName    String
     email       String
-    phone       String?
-    companyName String?
-    position    String?
+    phone       String   // ← required (was String?)
+    companyName String   // ← required (was String?)
+    position    String   // ← required (was String?)
     createdAt   DateTime @default(now())
 
     session AuditSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
