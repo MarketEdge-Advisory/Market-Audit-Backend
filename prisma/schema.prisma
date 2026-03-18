@@ -1,133 +1,133 @@
 generator client {
-  provider   = "prisma-client-js"
-  engineType = "client"
+    provider   = "prisma-client-js"
+    engineType = "client"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
 enum SessionStatus {
-  in_progress
-  completed
+    in_progress
+    completed
 }
 
 model AuditTemplate {
-  id        String   @id @default(cuid())
-  name      String
-  version   Int      @unique
-  isActive  Boolean  @default(true)
-  maxScore  Int
-  createdAt DateTime @default(now())
+    id        String   @id @default(cuid())
+    name      String
+    version   Int      @unique
+    isActive  Boolean  @default(true)
+    maxScore  Int
+    createdAt DateTime @default(now())
 
-  sections AuditSection[]
-  sessions AuditSession[]
+    sections AuditSection[]
+    sessions AuditSession[]
 }
 
 model AuditSection {
-  id         String   @id @default(cuid())
-  templateId String
-  code       String
-  title      String
-  sortOrder  Int
-  maxScore   Int
-  createdAt  DateTime @default(now())
+    id         String   @id @default(cuid())
+    templateId String
+    code       String
+    title      String
+    sortOrder  Int
+    maxScore   Int
+    createdAt  DateTime @default(now())
 
-  template  AuditTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  questions AuditQuestion[]
+    template  AuditTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+    questions AuditQuestion[]
 
-  @@unique([templateId, code])
-  @@index([templateId, sortOrder])
+    @@unique([templateId, code])
+    @@index([templateId, sortOrder])
 }
 
 model AuditQuestion {
-  id        String   @id @default(cuid())
-  sectionId String
-  code      String
-  text      String
-  sortOrder Int
-  createdAt DateTime @default(now())
+    id        String   @id @default(cuid())
+    sectionId String
+    code      String
+    text      String
+    sortOrder Int
+    createdAt DateTime @default(now())
 
-  section AuditSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  options AuditOption[]
-  answers AuditAnswer[]
+    section AuditSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+    options AuditOption[]
+    answers AuditAnswer[]
 
-  @@unique([sectionId, code])
-  @@index([sectionId, sortOrder])
+    @@unique([sectionId, code])
+    @@index([sectionId, sortOrder])
 }
 
 model AuditOption {
-  id         String   @id @default(cuid())
-  questionId String
-  label      String
-  points     Int
-  sortOrder  Int
-  createdAt  DateTime @default(now())
+    id         String   @id @default(cuid())
+    questionId String
+    label      String
+    points     Int
+    sortOrder  Int
+    createdAt  DateTime @default(now())
 
-  question AuditQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  answers  AuditAnswer[]
+    question AuditQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+    answers  AuditAnswer[]
 
-  @@index([questionId, sortOrder])
+    @@index([questionId, sortOrder])
 }
 
 model AuditSession {
-  id          String        @id @default(cuid())
-  templateId  String
-  status      SessionStatus @default(in_progress)
-  startedAt   DateTime      @default(now())
-  completedAt DateTime?
-  createdAt   DateTime      @default(now())
+    id          String        @id @default(cuid())
+    templateId  String
+    status      SessionStatus @default(in_progress)
+    startedAt   DateTime      @default(now())
+    completedAt DateTime?
+    createdAt   DateTime      @default(now())
 
-  template AuditTemplate @relation(fields: [templateId], references: [id])
-  answers  AuditAnswer[]
-  result   AuditResult?
-  lead     AuditLead?
+    template AuditTemplate @relation(fields: [templateId], references: [id])
+    answers  AuditAnswer[]
+    result   AuditResult?
+    lead     AuditLead?
 
-  @@index([templateId])
+    @@index([templateId])
 }
 
 model AuditAnswer {
-  id            String   @id @default(cuid())
-  sessionId     String
-  questionId    String
-  optionId      String
-  pointsAwarded Int
-  answeredAt    DateTime @default(now())
+    id            String   @id @default(cuid())
+    sessionId     String
+    questionId    String
+    optionId      String
+    pointsAwarded Int
+    answeredAt    DateTime @default(now())
 
-  session  AuditSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  question AuditQuestion @relation(fields: [questionId], references: [id])
-  option   AuditOption   @relation(fields: [optionId], references: [id])
+    session  AuditSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    question AuditQuestion @relation(fields: [questionId], references: [id])
+    option   AuditOption   @relation(fields: [optionId], references: [id])
 
-  @@unique([sessionId, questionId])
-  @@index([sessionId])
+    @@unique([sessionId, questionId])
+    @@index([sessionId])
 }
 
 model AuditResult {
-  id            String   @id @default(cuid())
-  sessionId     String   @unique
-  totalScore    Int
-  maxScore      Int
-  tier          String
-  message       String
-  sectionScores Json
-  locked        Boolean  @default(true)
-  calculatedAt  DateTime @default(now())
+    id            String   @id @default(cuid())
+    sessionId     String   @unique
+    totalScore    Int
+    maxScore      Int
+    tier          String
+    message       String
+    sectionScores Json
+    locked        Boolean  @default(true)
+    calculatedAt  DateTime @default(now())
 
-  session AuditSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    session AuditSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }
 
 model AuditLead {
-  id          String   @id @default(cuid())
-  sessionId   String   @unique
-  fullName    String
-  email       String
-  phone       String // ← required (was String?)
-  companyName String // ← required (was String?)
-  position    String // ← required (was String?)
-  createdAt   DateTime @default(now())
+    id          String   @id @default(cuid())
+    sessionId   String   @unique
+    fullName    String
+    email       String
+    phone       String // ← required (was String?)
+    companyName String // ← required (was String?)
+    position    String // ← required (was String?)
+    createdAt   DateTime @default(now())
 
-  session AuditSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    session AuditSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
-  @@index([email])
+    @@index([email])
 }
