@@ -313,6 +313,15 @@ async function main() {
   });
 
   if (existing) {
+    // FIX: Delete children in dependency order before deleting the template.
+    // AuditSession has no onDelete: Cascade on its template relation so it
+    // must be cleaned up manually. All other models cascade from session.
+    await prisma.auditAnswer.deleteMany();
+    await prisma.auditResult.deleteMany();
+    await prisma.auditLead.deleteMany();
+    await prisma.auditSession.deleteMany({
+      where: { templateId: existing.id },
+    });
     await prisma.auditTemplate.delete({ where: { id: existing.id } });
   }
 
@@ -347,7 +356,7 @@ async function main() {
     },
   });
 
-  console.log('Seeded marketing audit template v1');
+  console.log('✅ Seeded marketing audit template v1');
 }
 
 main()
