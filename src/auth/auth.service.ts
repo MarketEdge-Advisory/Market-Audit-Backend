@@ -9,7 +9,7 @@ export class AuthService {
     email: string,
     password: string,
   ): Promise<{ access_token: string }> {
-    const adminEmail = process.env.ADMIN_EMAIL
+    const adminEmail = process.env.ADMIN_EMAIL;
     const adminPassword = process.env.ADMIN_PASSWORD ?? 'changeme';
 
     // Only allow agency@marketedgeadvisory.com accounts
