@@ -299,8 +299,55 @@ const sections: SectionSeed[] = [
 ];
 
 // ─── Admin seed config ─────────────────────────────────────
-const ADMIN_EMAIL    = process.env.SEED_ADMIN_EMAIL    ?? 'agency@marketedgeadvisory.com';
-const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? 'changeme123';
+const TEMPLATE_VERSION = 1;
+const TEMPLATE_NAME = 'Marketing Audit';
+const TEMPLATE_MAX_SCORE = sections.reduce(
+  (total, section) => total + section.maxScore,
+  0,
+);
+
+const ADMIN_EMAIL =
+  process.env.SEED_ADMIN_EMAIL?.trim() ||
+  process.env.ADMIN_EMAIL?.trim() ||
+  'agency@marketedgeadvisory.com';
+
+const adminPasswordFromEnv =
+  process.env.SEED_ADMIN_PASSWORD?.trim() ||
+  process.env.ADMIN_PASSWORD?.trim();
+
+const ADMIN_PASSWORD = adminPasswordFromEnv || 'changeme123';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+function buildTemplateCreateData() {
+  return {
+    name: TEMPLATE_NAME,
+    version: TEMPLATE_VERSION,
+    isActive: true,
+    maxScore: TEMPLATE_MAX_SCORE,
+    sections: {
+      create: sections.map((section, sectionIndex) => ({
+        code: section.code,
+        title: section.title,
+        maxScore: section.maxScore,
+        sortOrder: sectionIndex + 1,
+        questions: {
+          create: section.questions.map((question, questionIndex) => ({
+            code: question.code,
+            text: question.text,
+            sortOrder: questionIndex + 1,
+            options: {
+              create: question.options.map((option, optionIndex) => ({
+                label: option.label,
+                points: option.points,
+                sortOrder: optionIndex + 1,
+              })),
+            },
+          })),
+        },
+      })),
+    },
+  };
+}
 
 async function seedAdmin() {
   const existing = await prisma.adminUser.findUnique({
@@ -308,69 +355,51 @@ async function seedAdmin() {
     select: { id: true },
   });
 
-  if (existing) {
-    console.log('⏭️  Admin user already exists, skipping');
-    return;
+  if (!existing && IS_PRODUCTION && !adminPasswordFromEnv) {
+    throw new Error(
+      'ADMIN_PASSWORD or SEED_ADMIN_PASSWORD must be set before seeding a new admin in production.',
+    );
   }
 
   const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 12);
 
-  await prisma.adminUser.create({
-    data: {
-      email:ADMIN_EMAIL,
+  await prisma.adminUser.upsert({
+    where: { email: ADMIN_EMAIL },
+    update: {},
+    create: {
+      email: ADMIN_EMAIL,
       hashedPassword,
     },
   });
 
-  console.log(`✅ Seeded admin user → ${ADMIN_EMAIL}`);
+  if (existing) {
+    console.log(`Admin user already exists, leaving unchanged -> ${ADMIN_EMAIL}`);
+    return;
+  }
+
+  console.log(`Seeded admin user -> ${ADMIN_EMAIL}`);
 }
 
 async function seedTemplate() {
   const existing = await prisma.auditTemplate.findUnique({
-    where: { version: 1 },
+    where: { version: TEMPLATE_VERSION },
     select: { id: true },
   });
 
-  if (existing) {
-    await prisma.auditAnswer.deleteMany();
-    await prisma.auditResult.deleteMany();
-    await prisma.auditLead.deleteMany();
-    await prisma.auditSession.deleteMany({ where: { templateId: existing.id } });
-    await prisma.auditTemplate.delete({ where: { id: existing.id } });
-  }
-
-  await prisma.auditTemplate.create({
-    data: {
-      name:     'Marketing Audit',
-      version:  1,
-      isActive: true,
-      maxScore: 250,
-      sections: {
-        create: sections.map((section, sectionIndex) => ({
-          code:      section.code,
-          title:     section.title,
-          maxScore:  section.maxScore,
-          sortOrder: sectionIndex + 1,
-          questions: {
-            create: section.questions.map((question, questionIndex) => ({
-              code:      question.code,
-              text:      question.text,
-              sortOrder: questionIndex + 1,
-              options: {
-                create: question.options.map((option, optionIndex) => ({
-                  label:     option.label,
-                  points:    option.points,
-                  sortOrder: optionIndex + 1,
-                })),
-              },
-            })),
-          },
-        })),
-      },
-    },
+  await prisma.auditTemplate.upsert({
+    where: { version: TEMPLATE_VERSION },
+    update: {},
+    create: buildTemplateCreateData(),
   });
 
-  console.log('✅ Seeded marketing audit template v1');
+  if (existing) {
+    console.log(
+      `Audit template v${TEMPLATE_VERSION} already exists, leaving unchanged. Bump the version to publish a new template.`,
+    );
+    return;
+  }
+
+  console.log(`Seeded ${TEMPLATE_NAME} template v${TEMPLATE_VERSION}`);
 }
 
 async function main() {
