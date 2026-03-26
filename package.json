@@ -6,20 +6,22 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "prisma generate && prisma migrate deploy && nest build && npx ts-node prisma/seed.ts",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "db:setup": "prisma migrate deploy && prisma db seed",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "prebuild": "ts-node scripts/generate-secret.ts",
     "prestart:dev": "ts-node scripts/generate-secret.ts",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/main.js",
+    "heroku-postbuild": "npm run build",
     "generate": "prisma generate",
     "migrate:dev": "prisma migrate dev --name app-migration",
     "migrate:prod": "prisma migrate deploy",
     "migrate:status": "prisma migrate status",
     "migrate:start:dev": "npm run migrate:dev && npm run start:dev",
-    "seed": "ts-node prisma/seed.ts",
+    "seed": "prisma db seed",
     "db": "prisma studio",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
@@ -98,8 +100,5 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
-  },
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
   }
 }
