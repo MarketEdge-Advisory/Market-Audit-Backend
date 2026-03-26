@@ -5,9 +5,9 @@ import { defineConfig } from 'prisma/config';
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
-  seed: 'ts-node prisma/seed.ts',
   migrations: {
     path: 'prisma/migrations',
+    seed: 'node -r ts-node/register prisma/seed.ts',
   },
   datasource: {
     url: process.env['DATABASE_URL']!,
