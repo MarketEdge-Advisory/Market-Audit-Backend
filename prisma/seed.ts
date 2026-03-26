@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -61,10 +62,7 @@ const sections: SectionSeed[] = [
         options: [
           { label: 'Yes, documented and regularly updated', points: 10 },
           { label: "We have something, but it's outdated", points: 5 },
-          {
-            label: 'We know our customers but nothing is documented',
-            points: 2,
-          },
+          { label: 'We know our customers but nothing is documented', points: 2 },
           { label: "No, we're figuring it out as we go", points: 0 },
         ],
       },
@@ -126,15 +124,9 @@ const sections: SectionSeed[] = [
         code: 'Q10',
         text: 'How would you rate your brand consistency across all touchpoints (website, social, materials)?',
         options: [
-          {
-            label: 'Very consistent, we have brand guidelines we follow',
-            points: 10,
-          },
+          { label: 'Very consistent, we have brand guidelines we follow', points: 10 },
           { label: 'Somewhat consistent', points: 5 },
-          {
-            label: 'Inconsistent, things look different everywhere',
-            points: 0,
-          },
+          { label: 'Inconsistent, things look different everywhere', points: 0 },
         ],
       },
     ],
@@ -306,46 +298,68 @@ const sections: SectionSeed[] = [
   },
 ];
 
-async function main() {
+// ─── Admin seed config ─────────────────────────────────────
+const ADMIN_EMAIL    = process.env.SEED_ADMIN_EMAIL    ?? 'agency@marketedgeadvisory.com';
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? 'changeme123';
+
+async function seedAdmin() {
+  const existing = await prisma.adminUser.findUnique({
+    where: { email: ADMIN_EMAIL },
+    select: { id: true },
+  });
+
+  if (existing) {
+    console.log('⏭️  Admin user already exists, skipping');
+    return;
+  }
+
+  const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 12);
+
+  await prisma.adminUser.create({
+    data: {
+      email:ADMIN_EMAIL,
+      hashedPassword,
+    },
+  });
+
+  console.log(`✅ Seeded admin user → ${ADMIN_EMAIL}`);
+}
+
+async function seedTemplate() {
   const existing = await prisma.auditTemplate.findUnique({
     where: { version: 1 },
     select: { id: true },
   });
 
   if (existing) {
-    // FIX: Delete children in dependency order before deleting the template.
-    // AuditSession has no onDelete: Cascade on its template relation so it
-    // must be cleaned up manually. All other models cascade from session.
     await prisma.auditAnswer.deleteMany();
     await prisma.auditResult.deleteMany();
     await prisma.auditLead.deleteMany();
-    await prisma.auditSession.deleteMany({
-      where: { templateId: existing.id },
-    });
+    await prisma.auditSession.deleteMany({ where: { templateId: existing.id } });
     await prisma.auditTemplate.delete({ where: { id: existing.id } });
   }
 
   await prisma.auditTemplate.create({
     data: {
-      name: 'Marketing Audit',
-      version: 1,
+      name:     'Marketing Audit',
+      version:  1,
       isActive: true,
       maxScore: 250,
       sections: {
         create: sections.map((section, sectionIndex) => ({
-          code: section.code,
-          title: section.title,
-          maxScore: section.maxScore,
+          code:      section.code,
+          title:     section.title,
+          maxScore:  section.maxScore,
           sortOrder: sectionIndex + 1,
           questions: {
             create: section.questions.map((question, questionIndex) => ({
-              code: question.code,
-              text: question.text,
+              code:      question.code,
+              text:      question.text,
               sortOrder: questionIndex + 1,
               options: {
                 create: question.options.map((option, optionIndex) => ({
-                  label: option.label,
-                  points: option.points,
+                  label:     option.label,
+                  points:    option.points,
                   sortOrder: optionIndex + 1,
                 })),
               },
@@ -357,6 +371,11 @@ async function main() {
   });
 
   console.log('✅ Seeded marketing audit template v1');
+}
+
+async function main() {
+  await seedTemplate();
+  await seedAdmin();
 }
 
 main()

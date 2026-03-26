@@ -6,6 +6,7 @@ import { AuditModule } from './audit/audit.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './admin/admin.module';
+import { LogsModule } from './logs/logs.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { AdminModule } from './admin/admin.module';
     AuditModule,
     AuthModule,
     AdminModule,
+    LogsModule
   ],
   controllers: [AppController],
   providers: [AppService],
