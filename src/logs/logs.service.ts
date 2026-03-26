@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { QueryLogsDto } from './dto/query-logs.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 export type CreateLogInput = {
-  adminId?:  string;
+  adminId?: string;
   actorType: string;
-  action:    string;
-  entity:    string;
-  entityId:  string;
-  before?:   object;
-  after?:    object;
+  action: string;
+  entity: string;
+  entityId: string;
+  before?: object;
+  after?: object;
   metadata?: object;
 };
 
@@ -25,18 +25,18 @@ export class LogsService {
     const { entity, entityId, actorType, action, page = 1, limit = 20 } = query;
 
     const where = {
-      ...(entity    && { entity }),
-      ...(entityId  && { entityId }),
+      ...(entity && { entity }),
+      ...(entityId && { entityId }),
       ...(actorType && { actorType }),
-      ...(action    && { action }),
+      ...(action && { action }),
     };
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.adminAuditLog.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        skip:    (page - 1) * limit,
-        take:    limit,
+        skip: (page - 1) * limit,
+        take: limit,
         include: {
           admin: { select: { id: true, email: true } },
         },
