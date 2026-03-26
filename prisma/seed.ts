@@ -29,12 +29,12 @@ const sections: SectionSeed[] = [
     questions: [
       {
         code: 'Q1',
-        text: 'Who currently sets your overall marketing strategies?',
+        text: 'Who currently sets your overall marketing strategy?',
         options: [
           { label: 'We have a CMO or VP Marketing', points: 10 },
-          { label: 'Our Marketing Manager handles strategies', points: 5 },
+          { label: 'Our Marketing Manager handles strategy', points: 5 },
           { label: 'The CEO/Founder sets direction', points: 3 },
-          { label: "We don't really have a formal strategies", points: 0 },
+          { label: "We don't really have a formal strategy", points: 0 },
         ],
       },
       {
@@ -58,7 +58,7 @@ const sections: SectionSeed[] = [
       },
       {
         code: 'Q4',
-        text: 'Do you have documented ideal customer profiles and a clear positioning strategies?',
+        text: 'Do you have documented ideal customer profiles and a clear positioning strategy?',
         options: [
           { label: 'Yes, documented and regularly updated', points: 10 },
           { label: "We have something, but it's outdated", points: 5 },
@@ -148,7 +148,7 @@ const sections: SectionSeed[] = [
       },
       {
         code: 'Q12',
-        text: "Do you have a documented content strategies aligned with your buyer's journey?",
+        text: "Do you have a documented content strategy aligned with your buyer's journey?",
         options: [
           { label: 'Yes, fully documented and followed', points: 10 },
           { label: 'We have some plans but not formal', points: 5 },
@@ -202,7 +202,7 @@ const sections: SectionSeed[] = [
       },
       {
         code: 'Q17',
-        text: 'Do you have a social media content calendar and strategies?',
+        text: 'Do you have a social media content calendar and strategy?',
         options: [
           { label: 'Yes, planned 30+ days ahead', points: 10 },
           { label: 'Yes, but only 1-2 weeks ahead', points: 6 },
