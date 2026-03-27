@@ -27,7 +27,7 @@ export class LogsService {
     const where = {
       ...(entity && { entity }),
       ...(entityId && { entityId }),
-      ...(actorType && { actorType }),
+      ...(actorType && { actorType }),d
       ...(action && { action }),
     };
 

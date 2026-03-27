@@ -20,8 +20,8 @@ export class AdminController {
   // Downloads a CSV of all leads
   // Must be declared BEFORE :sessionId to avoid route conflict
   @Get('leads/export')
-  async exportLeads(@Res() res: Response) {
-    const csv = await this.adminService.exportLeadsCsv();
+  async exportLeads(@Query() query: QueryLeadsDto, @Res() res: Response) {
+    const csv = await this.adminService.exportLeadsCsv(query);
     const filename = `leads-${new Date().toISOString().split('T')[0]}.csv`;
 
     res.setHeader('Content-Type', 'text/csv');
