@@ -1,24 +1,51 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { QueryLeadsDto } from './dto/query-leads.dto';
+
+const leadInclude = {
+  session: {
+    include: {
+      result: true,
+    },
+  },
+} satisfies Prisma.AuditLeadInclude;
+
+type LeadWithSessionResult = Prisma.AuditLeadGetPayload<{
+  include: typeof leadInclude;
+}>;
 
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
   // ── All leads with their result ──────────────────────────────────────────────
-  async getAllLeads() {
-    const leads = await this.prisma.auditLead.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        session: {
-          include: {
-            result: true,
-          },
-        },
-      },
-    });
+  async getAllLeads(query: QueryLeadsDto) {
+    const { page = 1, limit = 20 } = query;
 
-    return leads.map((lead) => ({
+    const [leads, total] = await this.prisma.$transaction([
+      this.prisma.auditLead.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: leadInclude,
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.auditLead.count(),
+    ]);
+
+    return {
+      data: leads.map((lead) => this.mapLead(lead)),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  private mapLead(lead: LeadWithSessionResult) {
+    return {
       sessionId: lead.sessionId,
       fullName: lead.fullName,
       email: lead.email,
@@ -36,7 +63,7 @@ export class AdminService {
             calculatedAt: lead.session.result.calculatedAt,
           }
         : null,
-    }));
+    };
   }
 
   // ── Single session with full detail ─────────────────────────────────────────
@@ -94,7 +121,11 @@ export class AdminService {
 
   // ── Export all leads as CSV ──────────────────────────────────────────────────
   async exportLeadsCsv(): Promise<string> {
-    const leads = await this.getAllLeads();
+    const leads = await this.prisma.auditLead.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: leadInclude,
+    });
+    const mappedLeads = leads.map((lead) => this.mapLead(lead));
 
     const headers = [
       'Session ID',
@@ -114,7 +145,7 @@ export class AdminService {
       return `"${str.replace(/"/g, '""')}"`;
     };
 
-    const rows = leads.map((lead) => [
+    const rows = mappedLeads.map((lead) => [
       escape(lead.sessionId),
       escape(lead.fullName),
       escape(lead.email),

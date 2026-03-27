@@ -1,7 +1,8 @@
-import { Controller, Delete, Get, Param, Res, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { QueryLeadsDto } from './dto/query-leads.dto';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard) // all routes in this controller require a valid JWT
@@ -11,8 +12,8 @@ export class AdminController {
   // GET /admin/leads
   // Returns all leads with their audit results
   @Get('leads')
-  getAllLeads() {
-    return this.adminService.getAllLeads();
+  getAllLeads(@Query() query: QueryLeadsDto) {
+    return this.adminService.getAllLeads(query);
   }
 
   // GET /admin/leads/export
