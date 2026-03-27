@@ -23,36 +23,36 @@ export class AuditService {
   private readonly tiers: TierDefinition[] = [
     {
       min: 0,
-      max: 49,
+      max: 99,
       tier: 'Starting Point',
       message:
         'Your marketing needs a complete strategic rebuild from the ground up.',
     },
     {
-      min: 50,
-      max: 99,
+      min: 100,
+      max: 149,
       tier: 'Needs Attention',
       message:
         'Your marketing has critical gaps that are likely costing you significant revenue.',
     },
     {
-      min: 100,
-      max: 149,
+      min: 150,
+      max: 199,
       tier: 'Developing',
       message:
         'Your marketing has potential but lacks strategic structure in key areas.',
     },
     {
-      min: 150,
-      max: 199,
+      min: 200,
+      max: 239,
       tier: 'Strong Foundation',
       message:
         'You have solid marketing fundamentals with some room for improvement.',
     },
     {
-      min: 200,
+      min: 240,
       max: 250,
-      tier: 'Marketing Leader',
+      tier: 'High Performers',
       message:
         "Your marketing is highly strategic and well-executed. You're in the top tier.",
     },
