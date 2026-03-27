@@ -39,10 +39,14 @@ const SECTION_EMOJI: Record<string, string> = {
 };
 
 const TIER_RECOMMENDATION: Record<string, string> = {
+  'Starting Point': `Full marketing transformation required. Strategic leadership and comprehensive execution support are essential.`,
+  'Needs Attention': `Urgent need for a strategic overhaul. Consider fractional CMO leadership plus execution support.`,
+  Developing: `Prioritize strategic leadership and a more systematic marketing approach. There is significant room for improvement.`,
+  'Strong Foundation': `Address the gaps highlighted in your lower-scoring sections. You are close to marketing excellence.`,
+  'Marketing Leader': `Focus on optimization and scaling what's working. Consider advanced strategies or expansion into new markets.`,
   Foundational: `Start by documenting your ideal customer profile and setting clear revenue-linked marketing goals. Build a consistent content and social media cadence before investing in paid channels.`,
   Growth: `You have solid momentum. Focus on tightening attribution, improving content consistency, and testing paid channels with clear CAC targets to scale what's already working.`,
   Advanced: `Your marketing is well-managed. Double down on your strongest channels, invest in brand differentiation, and explore advanced strategies like account-based marketing or retention loops.`,
-  'Marketing Leader': `Focus on optimization and scaling what's working. Consider advanced strategies or expansion into new markets.`,
 };
 
 // ── Shared HTML builders ──────────────────────────────────────────────────────

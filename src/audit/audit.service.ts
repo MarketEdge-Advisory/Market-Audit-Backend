@@ -21,10 +21,41 @@ interface TierDefinition {
 @Injectable()
 export class AuditService {
   private readonly tiers: TierDefinition[] = [
-    { min: 0,   max: 99,  tier: 'Foundational',    message: 'You are at the beginning of a structured marketing growth journey.' },
-    { min: 100, max: 159, tier: 'Growth',           message: 'You have solid momentum and clear opportunities to scale performance.' },
-    { min: 160, max: 209, tier: 'Advanced',         message: 'Your marketing is well managed and producing meaningful business outcomes.' },
-    { min: 210, max: 250, tier: 'Marketing Leader', message: 'Your marketing is highly strategic and well executed.' },
+    {
+      min: 0,
+      max: 49,
+      tier: 'Starting Point',
+      message:
+        'Your marketing needs a complete strategic rebuild from the ground up.',
+    },
+    {
+      min: 50,
+      max: 99,
+      tier: 'Needs Attention',
+      message:
+        'Your marketing has critical gaps that are likely costing you significant revenue.',
+    },
+    {
+      min: 100,
+      max: 149,
+      tier: 'Developing',
+      message:
+        'Your marketing has potential but lacks strategic structure in key areas.',
+    },
+    {
+      min: 150,
+      max: 199,
+      tier: 'Strong Foundation',
+      message:
+        'You have solid marketing fundamentals with some room for improvement.',
+    },
+    {
+      min: 200,
+      max: 250,
+      tier: 'Marketing Leader',
+      message:
+        "Your marketing is highly strategic and well-executed. You're in the top tier.",
+    },
   ];
 
   constructor(
@@ -53,7 +84,8 @@ export class AuditService {
       },
     });
 
-    if (!template) throw new NotFoundException('No active audit template found');
+    if (!template)
+      throw new NotFoundException('No active audit template found');
     return template;
   }
 
@@ -62,7 +94,9 @@ export class AuditService {
    */
   async startAudit(input: StartAuditDto) {
     const template = await this.prisma.auditTemplate.findFirst({
-      where: input.templateVersion ? { version: input.templateVersion } : { isActive: true },
+      where: input.templateVersion
+        ? { version: input.templateVersion }
+        : { isActive: true },
       orderBy: { version: 'desc' },
     });
 
@@ -79,19 +113,33 @@ export class AuditService {
    * Saves an answer and updates the score for that question
    */
   async saveAnswer(sessionId: string, input: SaveAnswerDto) {
-    const session = await this.prisma.auditSession.findUnique({ where: { id: sessionId } });
+    const session = await this.prisma.auditSession.findUnique({
+      where: { id: sessionId },
+    });
     if (!session || session.status !== SessionStatus.in_progress) {
-      
       throw new BadRequestException('Session not found or already completed');
     }
 
-    const option = await this.prisma.auditOption.findUnique({ where: { id: input.optionId } });
+    const option = await this.prisma.auditOption.findUnique({
+      where: { id: input.optionId },
+    });
     if (!option) throw new BadRequestException('Invalid option');
 
     return this.prisma.auditAnswer.upsert({
-      where:  { sessionId_questionId: { sessionId, questionId: input.questionId } },
-      update: { optionId: option.id, pointsAwarded: option.points, answeredAt: new Date() },
-      create: { sessionId, questionId: input.questionId, optionId: option.id, pointsAwarded: option.points },
+      where: {
+        sessionId_questionId: { sessionId, questionId: input.questionId },
+      },
+      update: {
+        optionId: option.id,
+        pointsAwarded: option.points,
+        answeredAt: new Date(),
+      },
+      create: {
+        sessionId,
+        questionId: input.questionId,
+        optionId: option.id,
+        pointsAwarded: option.points,
+      },
     });
   }
 
@@ -115,13 +163,18 @@ export class AuditService {
     }
 
     // Calculation Logic
-    const pointsMap = new Map(session.answers.map(a => [a.questionId, a.pointsAwarded]));
-    const sectionScores = session.template.sections.map(section => ({
-      sectionId:   section.id,
+    const pointsMap = new Map(
+      session.answers.map((a) => [a.questionId, a.pointsAwarded]),
+    );
+    const sectionScores = session.template.sections.map((section) => ({
+      sectionId: section.id,
       sectionCode: section.code,
-      title:       section.title,
-      score:       section.questions.reduce((sum, q) => sum + (pointsMap.get(q.id) ?? 0), 0),
-      maxScore:    section.maxScore,
+      title: section.title,
+      score: section.questions.reduce(
+        (sum, q) => sum + (pointsMap.get(q.id) ?? 0),
+        0,
+      ),
+      maxScore: section.maxScore,
     }));
 
     const totalScore = sectionScores.reduce((sum, s) => sum + s.score, 0);
@@ -130,13 +183,28 @@ export class AuditService {
     return this.prisma.$transaction(async (tx) => {
       await tx.auditSession.update({
         where: { id: sessionId },
-        data:  { status: SessionStatus.completed, completedAt: new Date() },
+        data: { status: SessionStatus.completed, completedAt: new Date() },
       });
 
       return tx.auditResult.upsert({
-        where:  { sessionId },
-        update: { totalScore, maxScore: session.template.maxScore, tier: tier.tier, message: tier.message, sectionScores, locked: true },
-        create: { sessionId, totalScore, maxScore: session.template.maxScore, tier: tier.tier, message: tier.message, sectionScores, locked: true },
+        where: { sessionId },
+        update: {
+          totalScore,
+          maxScore: session.template.maxScore,
+          tier: tier.tier,
+          message: tier.message,
+          sectionScores,
+          locked: true,
+        },
+        create: {
+          sessionId,
+          totalScore,
+          maxScore: session.template.maxScore,
+          tier: tier.tier,
+          message: tier.message,
+          sectionScores,
+          locked: true,
+        },
       });
     });
   }
@@ -151,43 +219,47 @@ export class AuditService {
     });
 
     if (!session?.result) {
-      throw new BadRequestException('Submit audit results before providing contact information.');
+      throw new BadRequestException(
+        'Submit audit results before providing contact information.',
+      );
     }
 
     const updatedResult = await this.prisma.$transaction(async (tx) => {
       await tx.auditLead.upsert({
-        where:  { sessionId },
+        where: { sessionId },
         update: { ...input },
         create: { sessionId, ...input },
       });
 
       return tx.auditResult.update({
         where: { sessionId },
-        data:  { locked: false },
+        data: { locked: false },
       });
     });
 
     // Log the client submission
     await this.logsService.create({
       actorType: 'client',
-      action:    'SUBMIT',
-      entity:    'AuditSession',
-      entityId:  sessionId,
+      action: 'SUBMIT',
+      entity: 'AuditSession',
+      entityId: sessionId,
       after: {
-        email:      input.email,
-        fullName:   input.fullName,
-        tier:       updatedResult.tier,
+        email: input.email,
+        fullName: input.fullName,
+        tier: updatedResult.tier,
         totalScore: updatedResult.totalScore,
       },
     });
 
-    this.emailService.sendResultsEmail({
-      clientEmail: input.email,
-      clientName:  input.fullName,
-      ...updatedResult,
-      sessionId,
-      sectionScores: updatedResult.sectionScores as any,
-    }).catch(err => console.error('Email processing error:', err));
+    this.emailService
+      .sendResultsEmail({
+        clientEmail: input.email,
+        clientName: input.fullName,
+        ...updatedResult,
+        sessionId,
+        sectionScores: updatedResult.sectionScores as any,
+      })
+      .catch((err) => console.error('Email processing error:', err));
 
     return { sessionId, unlocked: true };
   }
@@ -196,10 +268,14 @@ export class AuditService {
    * Fetches results if unlocked, otherwise returns locked/finalized status.
    */
   async getResult(sessionId: string) {
-    const session = await this.prisma.auditSession.findUnique({ where: { id: sessionId } });
+    const session = await this.prisma.auditSession.findUnique({
+      where: { id: sessionId },
+    });
     if (!session) throw new NotFoundException('Session not found');
 
-    const result = await this.prisma.auditResult.findUnique({ where: { sessionId } });
+    const result = await this.prisma.auditResult.findUnique({
+      where: { sessionId },
+    });
 
     // submitAudit hasn't been called yet — audit is not finalized
     if (!result) {
@@ -225,12 +301,14 @@ export class AuditService {
     });
 
     if (!session?.result || session.result.locked || !session.lead) {
-      throw new BadRequestException('Audit must be completed and unlocked to request a call.');
+      throw new BadRequestException(
+        'Audit must be completed and unlocked to request a call.',
+      );
     }
 
     await this.emailService.sendCallRequestEmail({
       clientEmail: session.lead.email,
-      clientName:  session.lead.fullName,
+      clientName: session.lead.fullName,
       ...session.result,
       sectionScores: session.result.sectionScores as any,
     });
@@ -239,7 +317,9 @@ export class AuditService {
   }
 
   private resolveTier(totalScore: number): TierDefinition {
-    const tier = this.tiers.find(t => totalScore >= t.min && totalScore <= t.max);
+    const tier = this.tiers.find(
+      (t) => totalScore >= t.min && totalScore <= t.max,
+    );
     return tier || this.tiers[0];
   }
 }
